@@ -254,23 +254,7 @@ public class MainActivity extends ListActivity {
 
     }
 
-    private void processMessage(String message){
-        Log.d("message", message);
-        String[] lines = message.split(":");
-        String command = lines[0];
 
-        int userID = Integer.parseInt(lines[1]);
-        int groupID = Integer.parseInt(lines[2]);
-
-        String item = lines[3];
-        if(command.equals(Commands._add)){
-            addItem(item);
-        }else if(command.equals(Commands._remove)){
-            deleteItem(item);
-        }else if(command.equals(Commands._mark)){
-            updateItem(item, "true");
-        }
-    }
 
     private void sendNewUserMessage(){
 
@@ -402,5 +386,49 @@ public class MainActivity extends ListActivity {
             return null;
         }
 
+        private void processMessage(String message){
+            Log.d("message", message);
+            String[] lines = message.split(":");
+            String command = lines[0];
+
+            int userID = Integer.parseInt(lines[1]);
+            int groupID = Integer.parseInt(lines[2]);
+
+            String item = lines[3];
+            if(command.equals(Commands._add)){
+                helper = new ItemDBHelper(MainActivity.this);
+                SQLiteDatabase db = helper.getWritableDatabase();
+                ContentValues values = new ContentValues();
+
+                values.clear();
+                values.put(Item.Columns.ITEM, item);
+                values.put(Item.Columns.done, "false");
+
+
+                db.insertWithOnConflict(Item.TABLE, null, values,
+                        SQLiteDatabase.CONFLICT_IGNORE);
+
+                updateUI();
+            }else if(command.equals(Commands._remove)){
+                String sql = String.format("DELETE FROM %s WHERE %s = '%s'",
+                        Item.TABLE,
+                        Item.Columns.ITEM,
+                        item);
+
+
+                helper = new ItemDBHelper(MainActivity.this);
+                SQLiteDatabase sqlDB = helper.getWritableDatabase();
+                sqlDB.execSQL(sql);
+                updateUI();
+            }else if(command.equals(Commands._mark)){
+                String done = "true";
+                SQLiteDatabase sqlDB = helper.getWritableDatabase();
+                ContentValues contentValues = new ContentValues();
+                //contentValues.put(Item.Columns.ITEM, item);
+                contentValues.put(Item.Columns.done, done);
+
+                sqlDB.update(Item.TABLE, contentValues, "item = ? ", new String[]{item});
+            }
+        }
     }
 }
