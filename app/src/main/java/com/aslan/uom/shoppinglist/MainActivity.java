@@ -7,7 +7,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-//import android.support.v7.app.ActionBarActivity;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -38,7 +37,8 @@ public class MainActivity extends ListActivity {
     private ItemDBHelper helper;
     private ListAdapter listAdapter;
 
-    private int mInterval = 10000; // 5 seconds by default, can be changed later
+    private int mInterval = 5000; // 5 seconds by default, can be changed later
+    private int UIInterval = 500; // 5 seconds by default, can be changed later
     private Handler mHandler = new Handler();
 
     static int userID;
@@ -59,9 +59,16 @@ public class MainActivity extends ListActivity {
 
         updateUI();
 
-        mHandler.postDelayed(mStatusChecker, mInterval);
+        startRepeatingTask();
+//        mHandler.postDelayed(mStatusChecker, mInterval);
 
 
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopRepeatingTask();
     }
 
     Runnable mStatusChecker = new Runnable() {
@@ -71,13 +78,24 @@ public class MainActivity extends ListActivity {
             mHandler.postDelayed(mStatusChecker, mInterval);
         }
     };
+
+    Runnable UIUpdater = new Runnable() {
+        @Override
+        public void run() {
+            updateUI();
+            mHandler.postDelayed(UIUpdater, UIInterval);
+        }
+    };
     void startRepeatingTask() {
-        Thread t = new Thread(mStatusChecker);
-        t.start();
+        Thread t1 = new Thread(mStatusChecker);
+        Thread t2 = new Thread(UIUpdater);
+        t1.start();
+        t2.start();
     }
 
     void stopRepeatingTask() {
         mHandler.removeCallbacks(mStatusChecker);
+        mHandler.removeCallbacks(UIUpdater);
     }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -408,7 +426,7 @@ public class MainActivity extends ListActivity {
                 db.insertWithOnConflict(Item.TABLE, null, values,
                         SQLiteDatabase.CONFLICT_IGNORE);
 
-                updateUI();
+                //updateUI();
             }else if(command.equals(Commands._remove)){
                 String sql = String.format("DELETE FROM %s WHERE %s = '%s'",
                         Item.TABLE,
@@ -419,7 +437,7 @@ public class MainActivity extends ListActivity {
                 helper = new ItemDBHelper(MainActivity.this);
                 SQLiteDatabase sqlDB = helper.getWritableDatabase();
                 sqlDB.execSQL(sql);
-                updateUI();
+                //updateUI();
             }else if(command.equals(Commands._mark)){
                 String done = "true";
                 SQLiteDatabase sqlDB = helper.getWritableDatabase();
